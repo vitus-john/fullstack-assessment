@@ -1,12 +1,44 @@
 import {
   createContext,
   useCallback,
+  useEffect,
   useContext,
   useMemo,
   useState,
   ReactNode,
 } from "react";
 import type { CartItem, Product } from "../types";
+
+const CART_STORAGE_KEY = "cart_items";
+
+function readStoredCart(): CartItem[] {
+  if (typeof window === "undefined") {
+    return [];
+  }
+
+  try {
+    const raw = window.localStorage.getItem(CART_STORAGE_KEY);
+    if (!raw) {
+      return [];
+    }
+
+    const parsed = JSON.parse(raw) as CartItem[];
+    if (!Array.isArray(parsed)) {
+      return [];
+    }
+
+    return parsed.filter(
+      (item) =>
+        item &&
+        typeof item.productId === "number" &&
+        typeof item.name === "string" &&
+        typeof item.price === "number" &&
+        typeof item.quantity === "number",
+    );
+  } catch {
+    return [];
+  }
+}
 
 interface CartContextValue {
   items: CartItem[];
@@ -19,7 +51,11 @@ interface CartContextValue {
 const CartContext = createContext<CartContextValue | undefined>(undefined);
 
 export function CartProvider({ children }: { children: ReactNode }) {
-  const [items, setItems] = useState<CartItem[]>([]);
+  const [items, setItems] = useState<CartItem[]>(readStoredCart);
+
+  useEffect(() => {
+    window.localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(items));
+  }, [items]);
 
   const add = useCallback((product: Product, quantity = 1) => {
     setItems((current) => {

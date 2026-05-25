@@ -31,6 +31,17 @@ async function findPaymentByIdempotencyKey(idempotencyKey, client = pool) {
   return rows[0] || null;
 }
 
+async function findWebhookEventByProviderEventId(providerEventId, client = pool) {
+  const query = `
+    SELECT id, provider_event_id AS "providerEventId", order_id AS "orderId",
+           event_type AS "eventType", payload, created_at AS "createdAt"
+    FROM payment_events
+    WHERE provider_event_id = $1
+  `;
+  const { rows } = await client.query(query, [providerEventId]);
+  return rows[0] || null;
+}
+
 async function createWebhookEvent(
   { providerEventId, orderId, eventType, payload },
   client = pool,
@@ -53,5 +64,6 @@ async function createWebhookEvent(
 module.exports = {
   createPayment,
   findPaymentByIdempotencyKey,
+  findWebhookEventByProviderEventId,
   createWebhookEvent,
 };

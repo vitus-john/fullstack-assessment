@@ -33,12 +33,12 @@ CREATE TABLE IF NOT EXISTS payments (
   provider_txn_id TEXT NOT NULL UNIQUE,
   status TEXT NOT NULL CHECK (status IN ('SUCCESS', 'FAILED')),
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  idempotency_key TEXT
+  idempotency_key TEXT UNIQUE
 );
 
 CREATE TABLE IF NOT EXISTS payment_events (
   id BIGSERIAL PRIMARY KEY,
-  provider_event_id TEXT NOT NULL,
+  provider_event_id TEXT NOT NULL UNIQUE,
   order_id BIGINT NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
   event_type TEXT NOT NULL,
   payload JSONB NOT NULL DEFAULT '{}'::jsonb,

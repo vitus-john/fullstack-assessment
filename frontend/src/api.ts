@@ -2,16 +2,27 @@ import type { Order, Product } from "./types";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
 
+function getAdminToken() {
+  const envToken = import.meta.env.VITE_ADMIN_TOKEN?.trim() ?? "";
+  if (envToken) {
+    return envToken;
+  }
+
+  return localStorage.getItem("admin_token")?.trim() ?? "";
+}
+
 async function request<T>(
   path: string,
   init: RequestInit = {},
 ): Promise<T> {
+  const headers = new Headers(init.headers || {});
+  if (init.body) {
+    headers.set("Content-Type", "application/json");
+  }
+
   const res = await fetch(`${API_URL}${path}`, {
-    headers: {
-      "Content-Type": "application/json",
-      ...(init.headers || {}),
-    },
     ...init,
+    headers,
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
@@ -52,21 +63,37 @@ export function chargeOrder(orderId: number): Promise<{ order: Order }> {
 }
 
 export function listOrdersAdmin(): Promise<Order[]> {
-  return request<Order[]>(`/orders`);
+  return request<Order[]>(`/orders`, {
+    headers: {
+      Authorization: `Bearer ${getAdminToken()}`,
+    },
+  });
+}
+
+export function createProductAdmin(body: {
+  sku: string;
+  name: string;
+  description?: string | null;
+  price: number;
+  stock: number;
+}): Promise<Product> {
+  return request<Product>(`/admin/products`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${getAdminToken()}`,
+    },
+    body: JSON.stringify(body),
+  });
 }
 
 export function updateProductAdmin(
   id: number,
   body: { price?: number; stock?: number; description?: string; name?: string },
 ): Promise<Product> {
-  const token =
-    localStorage.getItem("admin_token") ??
-    import.meta.env.VITE_ADMIN_TOKEN ??
-    "";
   return request<Product>(`/admin/products/${id}`, {
     method: "PATCH",
     headers: {
-      Authorization: `Bearer ${token}`,
+      Authorization: `Bearer ${getAdminToken()}`,
     },
     body: JSON.stringify(body),
   });

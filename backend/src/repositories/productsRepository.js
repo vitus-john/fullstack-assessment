@@ -1,15 +1,20 @@
 const pool = require("../db/postgres");
 
+function escapeLikePattern(value) {
+  return String(value).replace(/[\\%_]/g, "\\$&");
+}
+
 async function listProducts({ q } = {}, client = pool) {
   if (q) {
+    const pattern = `%${escapeLikePattern(q)}%`;
     const query = `
       SELECT id, sku, name, description, price, stock,
              created_at AS "createdAt", updated_at AS "updatedAt"
       FROM products
-      WHERE name ILIKE '%${q}%' OR sku ILIKE '%${q}%'
+      WHERE name ILIKE $1 ESCAPE '\\' OR sku ILIKE $1 ESCAPE '\\'
       ORDER BY id ASC
     `;
-    const { rows } = await client.query(query);
+    const { rows } = await client.query(query, [pattern]);
     return rows;
   }
 
@@ -39,6 +44,7 @@ async function getProductByIdForUpdate(productId, client) {
     SELECT id, sku, name, description, price, stock
     FROM products
     WHERE id = $1
+    FOR UPDATE
   `;
   const { rows } = await client.query(query, [productId]);
   return rows[0] || null;
@@ -49,6 +55,7 @@ async function decrementStock(productId, quantity, client) {
     UPDATE products
     SET stock = stock - $2, updated_at = NOW()
     WHERE id = $1
+      AND stock >= $2
     RETURNING id, stock
   `;
   const { rows } = await client.query(query, [productId, quantity]);

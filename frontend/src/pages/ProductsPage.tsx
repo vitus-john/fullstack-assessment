@@ -7,21 +7,34 @@ export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [q, setQ] = useState("");
   const [loading, setLoading] = useState(false);
-
-  async function load() {
-    setLoading(true);
-    try {
-      const data = await listProducts(q);
-      setProducts(data);
-    } catch (err) {
-      console.error(err);
-    }
-    setLoading(false);
-  }
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    load();
-  }, []);
+    let active = true;
+    const timer = window.setTimeout(async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const data = await listProducts(q.trim() || undefined);
+        if (active) {
+          setProducts(data);
+        }
+      } catch (err) {
+        if (active) {
+          setError(err instanceof Error ? err.message : "Failed to load products");
+        }
+      } finally {
+        if (active) {
+          setLoading(false);
+        }
+      }
+    }, 150);
+
+    return () => {
+      active = false;
+      window.clearTimeout(timer);
+    };
+  }, [q]);
 
   return (
     <div className="page">
@@ -31,16 +44,14 @@ export default function ProductsPage() {
           type="text"
           value={q}
           placeholder="Search products"
-          onChange={(e) => {
-            setQ(e.target.value);
-            load();
-          }}
+          onChange={(e) => setQ(e.target.value)}
         />
       </div>
+      {error && <p className="error">{error}</p>}
       {loading && <p>Loading...</p>}
       <ul className="product-grid">
-        {products.map((p, idx) => (
-          <li key={idx} className="product-card">
+        {products.map((p) => (
+          <li key={p.id} className="product-card">
             <Link to={`/products/${p.id}`}>
               <h3>{p.name}</h3>
               <p className="sku">{p.sku}</p>
