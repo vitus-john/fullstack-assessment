@@ -27,14 +27,23 @@ function readStoredCart(): CartItem[] {
       return [];
     }
 
-    return parsed.filter(
-      (item) =>
-        item &&
-        typeof item.productId === "number" &&
-        typeof item.name === "string" &&
-        typeof item.price === "number" &&
-        typeof item.quantity === "number",
-    );
+    return parsed
+      .map((item) => ({
+        productId: Number(item?.productId),
+        name: item?.name,
+        price: Number(item?.price),
+        quantity: Number(item?.quantity),
+      }))
+      .filter(
+        (item) =>
+          Number.isInteger(item.productId) &&
+          item.productId > 0 &&
+          typeof item.name === "string" &&
+          item.name.length > 0 &&
+          Number.isFinite(item.price) &&
+          Number.isInteger(item.quantity) &&
+          item.quantity > 0,
+      );
   } catch {
     return [];
   }

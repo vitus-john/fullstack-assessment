@@ -4,11 +4,7 @@ const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
 
 function getAdminToken() {
   const envToken = import.meta.env.VITE_ADMIN_TOKEN?.trim() ?? "";
-  if (envToken) {
-    return envToken;
-  }
-
-  return localStorage.getItem("admin_token")?.trim() ?? "";
+  return envToken;
 }
 
 async function request<T>(
